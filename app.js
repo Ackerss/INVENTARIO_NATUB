@@ -1,134 +1,249 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#4A90E2">
-    <title>Contador de Inventário Granel</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="manifest" href="manifest.json">
-    <style>
-        /* Estilos gerais e de botões */
-        @keyframes flash { 0%,100%{background-color:initial;} 50%{background-color:#a7f3d0;} }
-        .flash-success{animation:flash .5s ease-out;}
-        @keyframes flash-error { 0%,100%{background-color:initial;} 50%{background-color:#fecaca;} }
-        .flash-error{animation:flash-error .7s ease-out;}
-        #listaItensTable{width:100%;table-layout:fixed;word-wrap:break-word;font-size:.9rem}
-        #listaItensTable th,#listaItensTable td{padding:6px 4px;text-align:left;border:1px solid #e5e7eb;overflow-wrap:break-word;vertical-align:middle}
-        .action-button{padding:4px 8px;font-size:.8rem;margin-right:2px;display:inline-flex;align-items:center;justify-content:center}
-        input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-        input[type=number]{-moz-appearance:textfield}
-        #installPwaButton{display:none}
-        .tara-button{padding:.5rem .75rem;font-size:.875rem;font-weight:600;border:1px solid #6b7280;border-radius:.375rem;background:#f3f4f6;color:#374151;transition:background-color .2s;margin:.25rem;min-width:40px;text-align:center;cursor:pointer}
-        .tara-button:hover{background:#e5e7eb}
-        .tara-button.selected{background:#3b82f6;color:#fff;border-color:#2563eb}
-        #statusEnvio {text-align:center;padding:0.5rem;margin-top:0.5rem;border-radius:0.375rem;font-weight:500;display:none;}
-        #statusEnvio.success { background-color:#d1fae5;color:#065f46;display:block; }
-        #statusEnvio.error { background-color:#fee2e2;color:#991b1b;display:block; }
-        #statusEnvio.sending { background-color:#e0e7ff;color:#3730a3;display:block; }
-        #overlayNomeUsuario { position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,0.6);z-index:40;display:none; }
-        #modalNomeUsuario { position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background-color:white;padding:2rem;border-radius:0.5rem;box-shadow:0 4px 6px rgba(0,0,0,0.1);z-index:50;min-width:300px;text-align:center;display:none;}
-        #nomeProdutoDisplay {min-height: 1.25rem;font-size: 0.875rem;color: #1e40af;margin-top: 0.25rem;margin-bottom: 0.5rem;padding-left: 0.5rem;padding-right: 0.5rem;text-align: left;font-style: italic;font-weight: 500;line-height: 1.25rem;}
-    </style>
-</head>
-<body class="bg-gray-100 font-sans p-2 sm:p-4">
+// v13 - Estrutura revisada para estabilidade e logs
 
-    <div id="overlayNomeUsuario"></div>
-    <div id="modalNomeUsuario">
-        <h2 class="text-lg font-semibold mb-4">Identificação</h2>
-        <p class="mb-4 text-sm text-gray-600">Por favor, digite seu nome para registrar as contagens:</p>
-        <input type="text" id="inputNomeUsuario" class="w-full p-2 border border-gray-300 rounded-md mb-4" placeholder="Seu nome">
-        <button id="salvarNomeUsuarioBtn" class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Salvar e Continuar</button>
-    </div>
+// Adiciona um listener de erro global para pegar erros não capturados
+window.addEventListener('error', function(event) {
+    console.error('ERRO GLOBAL NÃO CAPTURADO:', event.message, 'em', event.filename, 'linha', event.lineno);
+    alert(`Ocorreu um erro inesperado no aplicativo:\n${event.message}\n\nPor favor, recarregue a página ou verifique o console.`);
+});
 
-    <div class="container mx-auto max-w-2xl bg-white p-4 sm:p-6 rounded-lg shadow-md">
+// Função principal assíncrona para garantir a ordem de carregamento
+async function mainApp() {
+    console.log('Iniciando mainApp() v13 (Stable)...');
 
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-xl sm:text-2xl font-bold text-center text-gray-700 flex-grow">Contador de Inventário Granel</h1>
-            <span id="nomeUsuarioDisplay" class="text-sm text-blue-600 font-medium cursor-pointer ml-2 whitespace-nowrap" title="Clique para alterar seu nome"></span>
-        </div>
+    // --- URL DO SEU SCRIPT PUBLICADO ---
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9_BwTH7ddUY7I9Am7MOwvAXz6Lj4KQRPrnKZhzzfxmF3fDozm5DDDAjNXH7VrEhmdnw/exec'; // SEU URL
 
-        <div class="text-center mb-4">
-            <button id="installPwaButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
-                <i class="fas fa-download mr-2"></i>Instalar App
-            </button>
-        </div>
+    if (GOOGLE_SCRIPT_URL === 'COLE_AQUI_O_URL_DO_SEU_SCRIPT_PUBLICADO') {
+        alert("ATENÇÃO DESENVOLVEDOR: Cole o URL do seu Google Apps Script publicado na variável GOOGLE_SCRIPT_URL no arquivo app.js!");
+        console.error("URL do Google Apps Script não configurada em app.js");
+        // Desabilita o botão de envio se URL não estiver configurado
+        const btn = document.getElementById('registrarItemBtn');
+        if(btn) btn.disabled = true;
+        return; // Impede o resto da inicialização
+    }
 
-        <div class="mb-6 space-y-4">
-            <div>
-                <label for="codigoProduto" class="block text-sm font-medium text-gray-700 mb-1">Código do Produto:</label>
-                <input type="text" id="codigoProduto" class="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite ou leia o código">
-                 <div id="nomeProdutoDisplay"></div>
-            </div>
+    /* ---------- refs DOM ---------- */
+    const el = id => document.getElementById(id);
+    let codigoProdutoInput, nomeProdutoDisplayDiv, pesoTotalKgInput, pesoTaraKgInput, registrarItemBtn, listaItensBody, botoesTaraContainer, statusEnvioDiv, nomeUsuarioDisplay, overlayNomeUsuario, modalNomeUsuario, inputNomeUsuario, salvarNomeUsuarioBtn, limparSessaoLocalBtn, alterarNomeBtn, letraPoteSelecionadoSpan;
 
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Selecionar Tara Rápida (Pote): <span id="letraPoteSelecionado" class="font-bold"></span></label>
-                <div id="botoesTaraContainer" class="flex flex-wrap justify-center">
-                    <button class="tara-button" data-tara-kg="0.258" data-letra="A">A</button>
-                    <button class="tara-button" data-tara-kg="0.410" data-letra="B">B</button>
-                    <button class="tara-button" data-tara-kg="0.322" data-letra="C">C</button>
-                    <button class="tara-button" data-tara-kg="0.586" data-letra="D">D</button>
-                    <button class="tara-button" data-tara-kg="0.750" data-letra="E">E</button>
-                    <button class="tara-button" data-tara-kg="0" data-letra="Nenhuma">Nenhuma</button>
-                </div>
-            </div>
+    // Tenta obter todas as referências e para se alguma falhar
+    try {
+        codigoProdutoInput = el('codigoProduto'); nomeProdutoDisplayDiv = el('nomeProdutoDisplay');
+        pesoTotalKgInput   = el('pesoTotalKg'); pesoTaraKgInput = el('pesoTaraKg');
+        registrarItemBtn   = el('registrarItemBtn'); listaItensBody = el('listaItensBody');
+        botoesTaraContainer= el('botoesTaraContainer'); statusEnvioDiv = el('statusEnvio');
+        nomeUsuarioDisplay = el('nomeUsuarioDisplay'); overlayNomeUsuario = el('overlayNomeUsuario');
+        modalNomeUsuario   = el('modalNomeUsuario'); inputNomeUsuario = el('inputNomeUsuario');
+        salvarNomeUsuarioBtn= el('salvarNomeUsuarioBtn'); limparSessaoLocalBtn = el('limparSessaoLocalBtn');
+        alterarNomeBtn     = el('alterarNomeBtn'); letraPoteSelecionadoSpan = el('letraPoteSelecionado');
 
-            <div>
-                <label for="pesoTaraKg" class="block text-sm font-medium text-gray-700 mb-1">Peso do Pote/Tara (kg):</label>
-                <input type="number" id="pesoTaraKg" inputmode="decimal" step="0.001" class="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Selecione acima ou digite (0 se não houver)">
-            </div>
+        const refs = { codigoProdutoInput, nomeProdutoDisplayDiv, pesoTotalKgInput, pesoTaraKgInput, registrarItemBtn, listaItensBody, botoesTaraContainer, statusEnvioDiv, nomeUsuarioDisplay, overlayNomeUsuario, modalNomeUsuario, inputNomeUsuario, salvarNomeUsuarioBtn, limparSessaoLocalBtn, alterarNomeBtn, letraPoteSelecionadoSpan };
+        for (const key in refs) {
+            if (!refs[key]) { throw new Error(`Elemento do DOM não encontrado: ${key}`); }
+        }
+        console.log('Elementos do DOM referenciados com sucesso.');
+    } catch (error) {
+         console.error("ERRO CRÍTICO ao referenciar elementos do DOM:", error);
+         alert(`Erro fatal ao carregar a interface: ${error.message}. O aplicativo não pode continuar.`);
+         return; // Interrompe a execução
+    }
 
-            <div>
-                <label for="pesoTotalKg" class="block text-sm font-medium text-gray-700 mb-1">Peso Total na Balança (kg):</label>
-                <input type="number" id="pesoTotalKg" inputmode="decimal" step="0.001" class="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: 1.570">
-            </div>
+    /* ---------- storage (LocalStorage) ---------- */
+    const ITENS_KEY_LOCAL = 'inventarioGranelItens_vLocal';
+    const NOME_USUARIO_KEY = 'inventarioGranelUsuario';
+    let itensLocais = [];
+    let nomeUsuario = '';
 
-             <div id="statusEnvio"></div>
+    /* ---------- Estado ---------- */
+    let letraPoteSelecionada = 'Nenhuma';
+    let enviandoDados = false;
+    const MAPA_PRODUTOS  = {}; // Mapa para guardar { codigo: { nome, tara, letra } }
 
-            <button id="registrarItemBtn" class="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 sm:py-3 px-4 rounded-md text-lg transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                <i class="fas fa-cloud-upload-alt mr-2"></i>Registrar e Enviar
-            </button>
-        </div>
+    /* ---------- Carrega potes.json ---------- */
+    async function carregarMapaProdutos() {
+        try {
+            console.log('Carregando potes.json...');
+            const resp = await fetch('potes.json', { cache: 'no-store' });
+            if (resp.ok) {
+                const arrPotes = await resp.json();
+                console.log(`potes.json lido, ${arrPotes.length} entradas.`);
+                arrPotes.forEach(pote => {
+                    const codigoStr = String(pote.codigo).trim();
+                    const taraNum = parseFloat(pote.tara);
+                    const nomeProd = String(pote.Nome || 'Nome Indefinido').trim();
+                    const letraPote = String(pote.letra || 'N/A').trim();
+                    if (codigoStr && !isNaN(taraNum)) {
+                        MAPA_PRODUTOS[codigoStr] = { nome: nomeProd, tara: taraNum, letra: letraPote };
+                    } else { console.warn('Entrada inválida no potes.json:', pote); }
+                });
+                console.log(`MAPA_PRODUTOS populado com ${Object.keys(MAPA_PRODUTOS).length} códigos.`);
+            } else {
+                console.error(`Falha ao carregar potes.json: ${resp.status} ${resp.statusText}`);
+                alert('Atenção: Não foi possível carregar a lista de produtos (potes.json). A busca automática pode não funcionar.');
+            }
+        } catch (e) {
+            console.error('Erro crítico ao processar potes.json:', e);
+            alert('Erro ao processar a lista de produtos (potes.json). Verifique o console.');
+        }
+    }
 
-        <div class="mb-6 opacity-60" title="Registros locais desta sessão (não afetam a planilha)">
-            <h2 class="text-base sm:text-lg font-semibold text-gray-600 mb-2">Registros Locais (Temporário):</h2>
-            <div class="overflow-x-auto bg-white rounded-md shadow max-h-40 overflow-y-auto border border-gray-200">
-                <table id="listaItensTable" class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50 sticky top-0 z-10">
-                    <tr>
-                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 25%;">Código</th>
-                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 20%;">Peso Líq. (kg)</th>
-                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 15%;">Tara (kg)</th>
-                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 25%;">Data/Hora</th>
-                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 15%;">Ações</th>
-                    </tr>
-                    </thead>
-                    <tbody id="listaItensBody" class="bg-white divide-y divide-gray-200">
-                    <tr><td colspan="5" class="text-center text-gray-500 py-4">Nenhum item local.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    /* ---------- util ---------- */
+    const parsePtBrDate = str => { /* ... */ };
+    const desmarcarBotoesTara = () => { /* ... */ };
 
-        <div class="flex flex-col sm:flex-row gap-3 mb-6">
-            <button id="limparSessaoLocalBtn" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-md transition duration-150 ease-in-out">
-                <i class="fas fa-history mr-2"></i> Limpar Registros Locais
-            </button>
-             <button id="alterarNomeBtn" class="flex-1 bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-150 ease-in-out">
-                <i class="fas fa-user-edit mr-2"></i> Alterar Nome
-            </button>
-        </div>
+    /* ---------- Habilitar/Desabilitar Botão Registrar ---------- */
+    function atualizarEstadoBotaoRegistrar() {
+        const habilitar = !!nomeUsuario && !enviandoDados;
+        if (registrarItemBtn) { // Verifica se o botão existe antes de acessá-lo
+             registrarItemBtn.disabled = !habilitar;
+             console.log(`[atualizarEstadoBotaoRegistrar] Nome: ${nomeUsuario ? 'OK' : 'Falta'}, Enviando: ${enviandoDados}. Botão ${habilitar ? 'HABILITADO' : 'DESABILITADO'}.`);
+        } else {
+             console.error("[atualizarEstadoBotaoRegistrar] Botão registrarItemBtn não encontrado!");
+        }
+    }
 
-    </div> <script src="app.js"></script>
-    <script>
-        // Script PWA (sem alterações)
-        if ('serviceWorker' in navigator) { /* ... */ }
-        let deferredPrompt; const installBtn = document.getElementById('installPwaButton');
-        window.addEventListener('beforeinstallprompt', e => { /* ... */ });
-        installBtn.addEventListener('click', () => { /* ... */ });
-        window.addEventListener('appinstalled', () => installBtn.style.display='none');
-    </script>
+    /* ---------- Gerenciamento Nome Usuário ---------- */
+    function salvarNomeUsuario(nome) {
+        nome = nome.trim();
+        if (nome) {
+            localStorage.setItem(NOME_USUARIO_KEY, nome);
+            nomeUsuario = nome;
+            if(nomeUsuarioDisplay) nomeUsuarioDisplay.textContent = `Olá, ${nome}!`;
+            if(nomeUsuarioDisplay) nomeUsuarioDisplay.title = "Clique para alterar seu nome";
+            if(modalNomeUsuario) modalNomeUsuario.style.display = 'none';
+            if(overlayNomeUsuario) overlayNomeUsuario.style.display = 'none';
+            console.log("Nome do usuário salvo:", nome);
+        } else {
+            alert("Por favor, digite um nome válido.");
+        }
+        atualizarEstadoBotaoRegistrar(); // Atualiza estado do botão independentemente
+    }
 
-</body>
-</html>
+    function pedirNomeUsuario() {
+        try {
+            nomeUsuario = localStorage.getItem(NOME_USUARIO_KEY) || '';
+            if (!nomeUsuario) {
+                console.log("Nenhum nome de usuário salvo, solicitando...");
+                if(overlayNomeUsuario) overlayNomeUsuario.style.display = 'block';
+                if(modalNomeUsuario) modalNomeUsuario.style.display = 'block';
+                if(inputNomeUsuario) inputNomeUsuario.focus();
+            } else {
+                console.log("Nome do usuário carregado:", nomeUsuario);
+                if(nomeUsuarioDisplay) nomeUsuarioDisplay.textContent = `Olá, ${nomeUsuario}!`;
+                if(nomeUsuarioDisplay) nomeUsuarioDisplay.title = "Clique para alterar seu nome";
+            }
+        } catch (error) {
+            console.error("Erro ao pedir nome de usuário:", error);
+        } finally {
+            // Garante que o estado do botão seja atualizado
+            atualizarEstadoBotaoRegistrar();
+        }
+    }
+
+    /* ---------- Persistência e Interface Local (Opcional) ---------- */
+    const salvarItensLocais = () => { /* ... */ };
+    const carregarItensLocais = () => { /* ... */ };
+    function renderizarListaItensLocais() { /* ... */ }
+    function excluirItemLocal(index) { /* ... */ }
+
+    /* ---------- Buscar Tara e Nome Automáticos ---------- */
+    function buscarDadosProdutoAutomaticamente() { /* ... (igual v11) ... */ }
+
+    /* ---------- Registrar e Enviar para Google Sheets ---------- */
+    async function registrarEEnviarItem() { /* ... (igual v11, mas chama atualizarEstadoBotaoRegistrar no finally) ... */
+        if (enviandoDados) { console.warn("Envio já em progresso."); return; }
+        if (!nomeUsuario) { alert("Defina seu nome de usuário."); pedirNomeUsuario(); return; }
+        if (GOOGLE_SCRIPT_URL === 'COLE_AQUI_O_URL_DO_SEU_SCRIPT_PUBLICADO') { alert("Erro: URL do Script não configurada."); return; }
+
+        console.log("Iniciando registrarEEnviarItem...");
+        enviandoDados = true; // Define flag ANTES de desabilitar
+        atualizarEstadoBotaoRegistrar(); // Desabilita botão via flag
+        statusEnvioDiv.textContent = 'Enviando...'; statusEnvioDiv.className = 'sending';
+        let nomeProdutoEncontrado = "N/A";
+
+        try {
+            /* ... (Lógica de validação e preparação dos dados) ... */
+            const codigo = codigoProdutoInput.value.trim(); /*...*/
+            const pesoTotalKg = /*...*/; let taraKg = /*...*/; const pesoLiquidoKg = /*...*/;
+            if (MAPA_PRODUTOS[codigo]) { nomeProdutoEncontrado = MAPA_PRODUTOS[codigo].nome || "N/A"; }
+            else { nomeProdutoEncontrado = "(Código não encontrado)"; }
+            const dadosParaEnviar = { /* ... */ };
+
+            console.log("Dados a serem enviados:", JSON.stringify(dadosParaEnviar));
+            console.log("Enviando fetch para:", GOOGLE_SCRIPT_URL);
+            const response = await fetch(GOOGLE_SCRIPT_URL, { /* ... Opções Fetch ... */ });
+            /* ... (Tratamento da Resposta) ... */
+            const responseText = await response.text(); /*...*/ let responseData = {}; /*...*/
+            if (!response.ok || responseData.result !== 'success') { throw new Error(/*...*/); }
+
+            // --- Sucesso ---
+            console.log("Dados enviados com sucesso!");
+            statusEnvioDiv.textContent = 'Enviado com sucesso!'; statusEnvioDiv.className = 'success flash-success';
+            /* ... (Adiciona log local, Limpa formulário) ... */
+            pesoTotalKgInput.value = ''; codigoProdutoInput.value = ''; pesoTaraKgInput.value = ''; nomeProdutoDisplayDiv.textContent = '';
+            desmarcarBotoesTara(); codigoProdutoInput.focus();
+
+        } catch (error) {
+            /* ... (Tratamento de erro) ... */
+             console.error("Falha ao enviar dados:", error);
+             statusEnvioDiv.textContent = `Erro ao enviar: ${error.message}`; statusEnvioDiv.className = 'error flash-error';
+             alert(`Falha ao enviar: ${error.message}`);
+        } finally {
+            enviandoDados = false; // Reseta flag
+            atualizarEstadoBotaoRegistrar(); // Reabilita/Desabilita botão corretamente
+            console.log("registrarEEnviarItem finalizado.");
+            setTimeout(() => { statusEnvioDiv.textContent = ''; statusEnvioDiv.style.display = 'none'; }, 7000);
+        }
+    }
+
+    /* ---------- Eventos ---------- */
+    // Adiciona listeners DENTRO de um try...catch para pegar erros na adição
+    try {
+        console.log("Adicionando event listeners...");
+
+        registrarItemBtn.addEventListener('click', registrarEEnviarItem);
+        codigoProdutoInput.addEventListener('blur', buscarDadosProdutoAutomaticamente);
+        codigoProdutoInput.addEventListener('input', () => { if(nomeProdutoDisplayDiv) nomeProdutoDisplayDiv.textContent = ''; }); // Limpa nome ao digitar
+        codigoProdutoInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.keyCode === 13) { console.log("Enter/Ir no Código"); e.preventDefault(); pesoTaraKgInput?.focus(); pesoTaraKgInput?.select(); } });
+        pesoTaraKgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.keyCode === 13) { console.log("Enter/Ir na Tara"); e.preventDefault(); pesoTotalKgInput?.focus(); pesoTotalKgInput?.select(); } });
+        pesoTotalKgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.keyCode === 13) { console.log("Enter/Ir no Peso Total"); e.preventDefault(); registrarItemBtn?.click(); } });
+
+        botoesTaraContainer.addEventListener('click', e => {
+            const btn = e.target.closest('.tara-button'); if (!btn) return;
+            console.log(`Botão Tara '${btn.dataset.letra}' clicado.`);
+            const tara = parseFloat(btn.dataset.taraKg);
+            letraPoteSelecionada = btn.dataset.letra || 'N/A';
+            if(letraPoteSelecionadoSpan) letraPoteSelecionadoSpan.textContent = `(${letraPoteSelecionada})`;
+            if (!isNaN(tara)) {
+                 if(pesoTaraKgInput) pesoTaraKgInput.value = tara > 0 ? tara.toFixed(3) : '';
+                 desmarcarBotoesTara(); btn.classList.add('selected');
+                 console.log(`Campo Tara definido para: '${pesoTaraKgInput?.value || '0'}'`);
+                 pesoTotalKgInput?.focus(); pesoTotalKgInput?.select();
+            }
+        });
+        pesoTaraKgInput.addEventListener('input', () => { console.log("Input manual na Tara."); desmarcarBotoesTara(); letraPoteSelecionada = 'Manual'; if(letraPoteSelecionadoSpan) letraPoteSelecionadoSpan.textContent = `(Manual)`; });
+
+        limparSessaoLocalBtn.addEventListener('click', () => { /* ... */ });
+        listaItensBody.addEventListener('click', e => { /* ... */ });
+        alterarNomeBtn.addEventListener('click', () => { /* ... */ });
+        salvarNomeUsuarioBtn.addEventListener('click', () => salvarNomeUsuario(inputNomeUsuario.value));
+        inputNomeUsuario.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.keyCode === 13) { event.preventDefault(); salvarNomeUsuario(inputNomeUsuario.value); } });
+        nomeUsuarioDisplay.addEventListener('click', () => { /* ... */ });
+
+        console.log("Event listeners adicionados com sucesso.");
+    } catch (error) {
+         console.error("ERRO CRÍTICO ao adicionar event listeners:", error);
+         alert("Erro fatal ao configurar interações do aplicativo. Verifique o console (F12).");
+         if(registrarItemBtn) registrarItemBtn.disabled = true; // Garante desabilitado se der erro aqui
+    }
+
+    /* ---------- Inicialização ---------- */
+    await carregarMapaProdutos(); // Espera o JSON carregar
+    pedirNomeUsuario();           // Pede nome (e ajusta botão)
+    carregarItensLocais();        // Carrega backup local
+    console.log("App inicializado e pronto.");
+
+} // Fim da função mainApp
+
+// Chama a função principal apenas quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', mainApp);
