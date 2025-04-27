@@ -1,7 +1,7 @@
 {
   "name": "Contador Inventário Granel",
   "short_name": "InvGranel",
-  "description": "Aplicativo PWA para contagem rápida de estoque a granel.",
+  "description": "PWA para contagem de estoque a granel.",
   "start_url": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
