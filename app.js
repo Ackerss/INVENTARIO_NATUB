@@ -1,19 +1,20 @@
 /* ========= CONFIG ========= */
-// ATENÇÃO: URL ATUALIZADO para o script que funcionou (ChatGPT)!
 const GOOGLE_SCRIPT_URL =
-  'https://script.google.com/macros/s/AKfycby9BdmtpHuyxQzyfMVNPIXisx_ADVo-Nod_HmTv-5ayEKzMjTDglmxTUqkI_ZeB8exN/exec'; // <-- NOVO URL
-const APP_VERSION = '28-abr-2025 - Merged Version';
-const ENVIO_DELAY_MS = 500; // Intervalo de 0.5 segundos entre envios
+  'https://script.google.com/macros/s/AKfycby9BdmtpHuyxQzyfMVNPIXisx_ADVo-Nod_HmTv-5ayEKzMjTDglmxTUqkI_ZeB8exN/exec'; // Mantido
+const APP_VERSION = '28-abr-2025 - Feat: Peso Extra'; // Versão Atualizada
+const ENVIO_DELAY_MS = 500;
 
 /* ========= VARS ========= */
-const ITENS_KEY = 'inv_granel_itens_v2'; // Chave pode mudar se a estrutura mudar
+const ITENS_KEY = 'inv_granel_itens_v3'; // Nova chave para evitar conflito com estrutura antiga
 const NOME_USUARIO_KEY = 'inventarioGranelUsuario';
 let nomeUsuario = '', enviando = false, letraPoteSel = 'Nenhuma', itens = [], MAPA = {};
 
 /* refs DOM */
 const $ = id => document.getElementById(id);
 const codigoInp=$('codigoProduto'), nomeDiv=$('nomeProdutoDisplay'),
-      taraInp=$('pesoTaraKg'), totalInp=$('pesoTotalKg'),
+      taraInp=$('pesoTaraKg'),
+      pesoComPoteInp=$('pesoComPoteKg'), // Renomeado
+      pesoExtraInp=$('pesoExtraKg'), // NOVO CAMPO
       btnReg=$('registrarItemBtn'), tbody=$('listaItensBody'),
       letras=$('botoesTaraContainer'), status=$('statusEnvio'),
       nomeDisp=$('nomeUsuarioDisplay'), modal=$('modalNomeUsuario'),
@@ -27,15 +28,16 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   console.log('App carregado:', APP_VERSION);
   setupEventListeners();
   carregaLocais();
-  await carregaPotes(); // Espera carregar potes antes de renderizar
+  await carregaPotes();
   renderizaLista();
   verificaNomeUsuario();
-  updateBotaoRegistrar(); // Atualiza estado inicial do botão registrar
+  updateBotaoRegistrar();
+  selecionaBotaoNenhuma(); // Garante que 'Nenhuma' comece selecionado
 });
 
 /* ---------- Setup Eventos ---------- */
 function setupEventListeners() {
-  // Modal Nome
+  // Modal Nome (sem alterações)
   salvaNmBtn.addEventListener('click', salvaNome);
   inpNome.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Done') salvaNome(); });
   nomeDisp.addEventListener('click', abrirModalNome);
@@ -44,10 +46,11 @@ function setupEventListeners() {
   // Navegação Enter/Go
   const goKeys = ['Enter','Go','Next','Done','Send'];
   codigoInp.addEventListener('keydown', e => { if (goKeys.includes(e.key)) { e.preventDefault(); taraInp.focus(); taraInp.select();} });
-  taraInp.addEventListener('keydown', e => { if (goKeys.includes(e.key)) { e.preventDefault(); totalInp.focus(); totalInp.select();} });
-  totalInp.addEventListener('keydown', e => { if (goKeys.includes(e.key)) { e.preventDefault(); btnReg.click(); }});
+  taraInp.addEventListener('keydown', e => { if (goKeys.includes(e.key)) { e.preventDefault(); pesoComPoteInp.focus(); pesoComPoteInp.select();} }); // Vai para peso com pote
+  pesoComPoteInp.addEventListener('keydown', e => { if (goKeys.includes(e.key)) { e.preventDefault(); pesoExtraInp.focus(); pesoExtraInp.select();}}); // Vai para peso extra
+  pesoExtraInp.addEventListener('keydown', e => { if (goKeys.includes(e.key)) { e.preventDefault(); btnReg.click(); }}); // Registra
 
-  // Input Código Produto (Blur) -> Busca Tara Automática
+  // Input Código Produto (Blur) -> Busca Tara Automática (sem alterações)
   codigoInp.addEventListener('blur', buscaTaraAutomatica);
 
   // Botões Tara Rápida
@@ -59,34 +62,36 @@ function setupEventListeners() {
   // Botão Registrar Item Localmente
   btnReg.addEventListener('click', registrarItemLocalmente);
 
-  // Botão Enviar Todos
+  // Botão Enviar Todos (sem alterações)
   enviarTodosBtn.addEventListener('click', enviarTodos);
 
-  // Botão Limpar Locais
+  // Botão Limpar Locais (sem alterações)
   btnLimpar.addEventListener('click', limparItensLocais);
 
   // Habilita/Desabilita botão Registrar ao digitar
-  [codigoInp, taraInp, totalInp].forEach(el => el.addEventListener('input', updateBotaoRegistrar));
+  // Agora depende do código e do peso COM POTE
+  [codigoInp, pesoComPoteInp].forEach(el => el.addEventListener('input', updateBotaoRegistrar));
+  // Tara e Peso extra não são estritamente necessários para habilitar
 }
 
-/* ---------- Nome Usuário ---------- */
-function verificaNomeUsuario() {
+/* ---------- Nome Usuário (sem alterações) ---------- */
+function verificaNomeUsuario() { /* ...código mantido... */
   nomeUsuario = localStorage.getItem(NOME_USUARIO_KEY) || '';
   if (!nomeUsuario) {
     abrirModalNome();
   } else {
     mostrarNome();
-    updateBotaoRegistrar(); // Habilita botão se nome já existe
+    updateBotaoRegistrar();
   }
 }
-function abrirModalNome() {
-  inpNome.value = nomeUsuario; // Preenche com nome atual se existir
+function abrirModalNome() { /* ...código mantido... */
+  inpNome.value = nomeUsuario;
   overlay.classList.add('active');
   modal.classList.add('active');
   inpNome.focus();
   inpNome.select();
 }
-function salvaNome() {
+function salvaNome() { /* ...código mantido... */
   const n = inpNome.value.trim();
   if (!n) {
     alert('Por favor, digite seu nome.');
@@ -97,14 +102,14 @@ function salvaNome() {
   mostrarNome();
   overlay.classList.remove('active');
   modal.classList.remove('active');
-  updateBotaoRegistrar(); // Pode habilitar o botão registrar agora
+  updateBotaoRegistrar();
 }
-function mostrarNome() {
+function mostrarNome() { /* ...código mantido... */
   nomeDisp.textContent = `Usuário: ${nomeUsuario}`;
 }
 
-/* ---------- Carregar Potes (Produtos) ---------- */
-async function carregaPotes() {
+/* ---------- Carregar Potes (sem alterações) ---------- */
+async function carregaPotes() { /* ...código mantido... */
   try {
     const response = await fetch('potes.json');
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -114,16 +119,16 @@ async function carregaPotes() {
       return map;
     }, {});
     console.log('Potes carregados:', Object.keys(MAPA).length);
-    geraBotoesTara(); // Gera botões após carregar
+    geraBotoesTara();
   } catch (error) {
     console.error("Erro ao carregar potes.json:", error);
     letras.innerHTML = '<span class="text-red-500">Erro ao carregar potes.</span>';
   }
 }
 
-/* ---------- Gerar Botões de Tara Rápida ---------- */
-function geraBotoesTara() {
-    letras.innerHTML = ''; // Limpa container
+/* ---------- Gerar Botões de Tara Rápida (sem alterações) ---------- */
+function geraBotoesTara() { /* ...código mantido... */
+    letras.innerHTML = '';
     const potesUnicos = {};
     Object.values(MAPA).forEach(p => {
         if (p.letra && p.tara !== undefined && !potesUnicos[p.letra]) {
@@ -131,7 +136,6 @@ function geraBotoesTara() {
         }
     });
 
-    // Ordena as letras (A, B, C...)
     Object.keys(potesUnicos).sort().forEach(letra => {
         const tara = potesUnicos[letra];
         const btn = document.createElement('button');
@@ -141,62 +145,78 @@ function geraBotoesTara() {
         btn.textContent = letra;
         letras.appendChild(btn);
     });
-    // Adiciona o botão "Nenhuma" fixo que já está no HTML
 }
 
 function handleTaraRapidaClick(event) {
     const btn = event.target.closest('.tara-button');
     if (!btn) return;
+
+    // Desmarca todos, incluindo o "Nenhuma" fixo
     desmarcaBotoesTara();
+    // Seleciona o clicado (seja ele qual for)
     btn.classList.add('selected');
+
     taraInp.value = parseFloat(btn.dataset.taraKg).toFixed(3);
     letraPoteSel = btn.dataset.letra;
     spanLetra.textContent = `(${letraPoteSel})`;
-    totalInp.focus(); // Move foco para peso total
-    totalInp.select();
+    pesoComPoteInp.focus(); // Move foco para peso com pote
+    pesoComPoteInp.select();
 }
 
 function handleTaraManualInput() {
     desmarcaBotoesTara();
-    letraPoteSel = 'Manual'; // Indica que foi digitado manualmente
+    letraPoteSel = 'Manual';
     spanLetra.textContent = '(Manual)';
+    // Se limpar o campo manual, seleciona 'Nenhuma'
+    if (!taraInp.value.trim()) {
+        selecionaBotaoNenhuma();
+    }
 }
 
 function desmarcaBotoesTara() {
+    // Desmarca os botões gerados dinamicamente
     letras.querySelectorAll('.tara-button.selected').forEach(b => b.classList.remove('selected'));
-    // Desmarca também o botão "Nenhuma" se estiver selecionado
+    // Desmarca o botão "Nenhuma" fixo que está fora do container 'letras'
     const btnNenhuma = document.querySelector('.tara-button[data-letra="Nenhuma"]');
     if(btnNenhuma) btnNenhuma.classList.remove('selected');
-
 }
 
-/* ---------- Busca Tara Automática ---------- */
+// Função auxiliar para selecionar o botão 'Nenhuma'
+function selecionaBotaoNenhuma() {
+    desmarcaBotoesTara();
+    const btnNenhuma = document.querySelector('.tara-button[data-letra="Nenhuma"]');
+    if(btnNenhuma) {
+        btnNenhuma.classList.add('selected');
+        taraInp.value = parseFloat(btnNenhuma.dataset.taraKg).toFixed(3); // Deve ser 0.000
+        letraPoteSel = 'Nenhuma';
+        spanLetra.textContent = '(Nenhuma)';
+    }
+}
+
+/* ---------- Busca Tara Automática (adaptado) ---------- */
 function buscaTaraAutomatica() {
   const codigo = codigoInp.value.trim();
   const produto = MAPA[codigo];
   if (produto) {
     nomeDiv.textContent = produto.Nome || 'Produto sem nome';
-    // Só preenche a tara se o campo estiver vazio
-    if (!taraInp.value.trim() && produto.tara !== undefined) {
-        taraInp.value = parseFloat(produto.tara).toFixed(3);
-        desmarcaBotoesTara();
-        const btnLetra = letras.querySelector(`.tara-button[data-letra="${produto.letra}"]`);
-        if (btnLetra) {
-            btnLetra.classList.add('selected');
-            letraPoteSel = produto.letra;
-            spanLetra.textContent = `(${produto.letra})`;
+    // Só preenche a tara se o campo estiver vazio ou se for 'Nenhuma' selecionado
+    if (!taraInp.value.trim() || letraPoteSel === 'Nenhuma') {
+        if (produto.tara !== undefined) {
+            taraInp.value = parseFloat(produto.tara).toFixed(3);
+            desmarcaBotoesTara();
+            const btnLetra = letras.querySelector(`.tara-button[data-letra="${produto.letra}"]`);
+            if (btnLetra) {
+                btnLetra.classList.add('selected');
+                letraPoteSel = produto.letra;
+                spanLetra.textContent = `(${produto.letra})`;
+            } else {
+                letraPoteSel = 'Manual';
+                spanLetra.textContent = '(Manual)';
+            }
         } else {
-            letraPoteSel = 'Manual'; // Produto tem tara mas não tem botão? Usa manual.
-             spanLetra.textContent = '(Manual)';
+            // Produto existe mas não tem tara definida -> seleciona 'Nenhuma'
+           selecionaBotaoNenhuma();
         }
-    } else if (!produto.tara) {
-        // Se o produto não tem tara definida, seleciona 'Nenhuma'
-        taraInp.value = ''; // Limpa tara manual se houver
-        desmarcaBotoesTara();
-        const btnNenhuma = document.querySelector('.tara-button[data-letra="Nenhuma"]');
-        if(btnNenhuma) btnNenhuma.classList.add('selected');
-        letraPoteSel = 'Nenhuma';
-        spanLetra.textContent = '(Nenhuma)';
     }
   } else {
     nomeDiv.textContent = ''; // Limpa nome se código não encontrado
@@ -204,20 +224,21 @@ function buscaTaraAutomatica() {
    updateBotaoRegistrar();
 }
 
-/* ---------- Estado Botão Registrar ---------- */
+/* ---------- Estado Botão Registrar (adaptado) ---------- */
 function updateBotaoRegistrar() {
-  btnReg.disabled = !(nomeUsuario && codigoInp.value.trim() && totalInp.value.trim());
+  // Precisa de usuário, código e peso COM POTE
+  btnReg.disabled = !(nomeUsuario && codigoInp.value.trim() && pesoComPoteInp.value.trim());
 }
 
 /* ---------- Armazenamento Local ---------- */
-function carregaLocais() {
+function carregaLocais() { /* ...código mantido... */
   itens = JSON.parse(localStorage.getItem(ITENS_KEY) || '[]');
 }
-function salvaLocais() {
+function salvaLocais() { /* ...código mantido... */
   localStorage.setItem(ITENS_KEY, JSON.stringify(itens));
-  renderizaLista(); // Atualiza a lista na tela sempre que salvar
+  renderizaLista();
 }
-function limparItensLocais() {
+function limparItensLocais() { /* ...código mantido... */
     if (enviando) {
         alert("Aguarde o término do envio atual antes de limpar.");
         return;
@@ -233,79 +254,87 @@ function limparItensLocais() {
     }
 }
 
-/* ---------- Registrar Item Localmente ---------- */
+/* ---------- Registrar Item Localmente (adaptado) ---------- */
 function registrarItemLocalmente() {
-  updateBotaoRegistrar(); // Revalida
+  updateBotaoRegistrar();
   if (btnReg.disabled) return;
 
   const codigo = codigoInp.value.trim();
   const tara = parseFloat(taraInp.value.replace(',', '.')) || 0;
-  const pesoTotal = parseFloat(totalInp.value.replace(',', '.'));
-  const pesoLiquido = +(pesoTotal - tara).toFixed(3); // Arredonda para 3 casas decimais
+  const pesoComPote = parseFloat(pesoComPoteInp.value.replace(',', '.'));
+  const pesoExtra = parseFloat(pesoExtraInp.value.replace(',', '.')) || 0; // NOVO
 
-  if (isNaN(pesoTotal)) {
-    mostraStatus('Erro: Peso total inválido.', 'error');
+  // Validação Peso com Pote
+  if (isNaN(pesoComPote)) {
+    mostraStatus('Erro: Peso COM POTE inválido.', 'error');
+    pesoComPoteInp.focus();
     return;
   }
-   if (pesoLiquido < 0) {
-      mostraStatus('Erro: Peso líquido negativo. Verifique Tara e Peso Total.', 'error');
+
+  const pesoLiquidoPote = pesoComPote - tara;
+  // Não impede registro se peso líquido do pote for negativo, pois pode haver peso extra
+  // if (pesoLiquidoPote < 0) {
+  //   mostraStatus('Aviso: Peso líquido no pote está negativo.', 'info', 3000);
+  // }
+
+  const pesoLiquidoTotal = +(pesoLiquidoPote + pesoExtra).toFixed(3); // Soma extra e arredonda
+
+  // Validação final do peso líquido total
+   if (pesoLiquidoTotal < 0) {
+      mostraStatus('Erro: Peso Líquido TOTAL negativo. Verifique os pesos.', 'error');
       return;
    }
-
 
   const produtoInfo = MAPA[codigo] || {};
 
   const novoItem = {
-    id: Date.now(), // ID único baseado no timestamp
+    id: Date.now(),
     timestamp: new Date().toISOString(),
     usuario: nomeUsuario,
     codigo: codigo,
     nomeProduto: produtoInfo.Nome || 'NÃO ENCONTRADO',
-    pesoLiquido: pesoLiquido,
+    pesoLiquido: pesoLiquidoTotal, // <-- Agora é o total
     tara: tara,
-    pesoTotal: pesoTotal,
-    letraPote: letraPoteSel || produtoInfo.letra || 'N/D' // Usa a letra selecionada ou do produto
+    pesoComPote: pesoComPote, // <-- Mantém o peso bruto do pote pesado
+    pesoExtra: pesoExtra,     // <-- Guarda o peso extra
+    letraPote: letraPoteSel || produtoInfo.letra || 'N/D'
   };
 
   itens.push(novoItem);
-  salvaLocais(); // Salva e atualiza a lista na tela
+  salvaLocais();
 
   // Limpa campos para próximo item
   codigoInp.value = '';
   taraInp.value = '';
-  totalInp.value = '';
+  pesoComPoteInp.value = '';
+  pesoExtraInp.value = ''; // Limpa extra também
   nomeDiv.textContent = '';
-  desmarcaBotoesTara();
-  const btnNenhuma = document.querySelector('.tara-button[data-letra="Nenhuma"]');
-  if(btnNenhuma) btnNenhuma.classList.add('selected'); // Seleciona 'Nenhuma' por padrão
-  letraPoteSel = 'Nenhuma';
-  spanLetra.textContent = '(Nenhuma)';
 
+  selecionaBotaoNenhuma(); // Seleciona 'Nenhuma' por padrão para a próxima
 
-  codigoInp.focus(); // Foco no código para próximo item
-  mostraStatus('Item registrado localmente!', 'success', 2000); // Feedback visual
-  updateBotaoRegistrar(); // Desabilita botão após limpar campos
+  codigoInp.focus();
+  mostraStatus('Item registrado localmente!', 'success', 2000);
+  updateBotaoRegistrar();
 }
 
-/* ---------- Renderizar Lista de Pendentes ---------- */
+/* ---------- Renderizar Lista de Pendentes (adaptado) ---------- */
 function renderizaLista() {
-  tbody.innerHTML = ''; // Limpa tabela
-  contadorPendentes.textContent = itens.length; // Atualiza contador
+  tbody.innerHTML = '';
+  contadorPendentes.textContent = itens.length;
 
   if (itens.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-4">Nenhum item local pendente.</td></tr>';
-    enviarTodosBtn.disabled = true; // Desabilita botão se não há itens
+    enviarTodosBtn.disabled = true;
     return;
   }
 
-  enviarTodosBtn.disabled = enviando; // Habilita se houver itens E não estiver enviando
+  enviarTodosBtn.disabled = enviando;
 
   itens.forEach((item, index) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="border px-2 py-1">${item.codigo}</td>
-      <td class="border px-2 py-1">${item.pesoLiquido.toFixed(3)}</td>
-      <td class="border px-2 py-1">${item.tara.toFixed(3)} (${item.letraPote})</td>
+      <td class="border px-2 py-1">${item.pesoLiquido.toFixed(3)}</td> <td class="border px-2 py-1">${item.tara.toFixed(3)} (${item.letraPote})</td>
       <td class="border px-2 py-1 text-xs">${new Date(item.timestamp).toLocaleString('pt-BR')}</td>
       <td class="border px-2 py-1 text-center">
         <button class="text-red-500 hover:text-red-700" data-id="${item.id}" title="Excluir este item">
@@ -313,13 +342,12 @@ function renderizaLista() {
         </button>
       </td>
     `;
-    // Adiciona evento para botão de excluir
     tr.querySelector('button').addEventListener('click', () => excluirItem(item.id));
     tbody.appendChild(tr);
   });
 }
 
-function excluirItem(id) {
+function excluirItem(id) { /* ...código mantido... */
     if (enviando) {
         alert("Aguarde o término do envio atual para excluir itens.");
         return;
@@ -335,17 +363,17 @@ function excluirItem(id) {
 }
 
 
-/* ---------- Envio para Google Apps Script ---------- */
-async function enviarTodos() {
+/* ---------- Envio para Google Apps Script (adaptado) ---------- */
+async function enviarTodos() { /* ...código mantido, a lógica interna de loop é a mesma... */
   if (enviando || itens.length === 0) return;
 
   enviando = true;
   enviarTodosBtn.disabled = true;
-  btnLimpar.disabled = true; // Desabilita limpar durante envio
-  btnReg.disabled = true; // Desabilita registrar durante envio
+  btnLimpar.disabled = true;
+  btnReg.disabled = true;
   mostraStatus(`Enviando ${itens.length} item(ns)...`, 'sending');
 
-  const itensParaEnviar = [...itens]; // Cria cópia para evitar problemas se a lista for modificada
+  const itensParaEnviar = [...itens];
   let enviadosComSucesso = 0;
   let falhas = 0;
 
@@ -353,32 +381,27 @@ async function enviarTodos() {
     const item = itensParaEnviar[i];
     mostraStatus(`Enviando ${i + 1}/${itensParaEnviar.length}: Código ${item.codigo}...`, 'sending');
     try {
-      await enviarItem(item);
-      // Se sucesso, remove da lista original 'itens'
+      await enviarItem(item); // A função enviarItem foi adaptada
       const indexOriginal = itens.findIndex(original => original.id === item.id);
       if (indexOriginal > -1) {
         itens.splice(indexOriginal, 1);
       }
       enviadosComSucesso++;
-      salvaLocais(); // Salva a remoção e atualiza a lista na tela
+      salvaLocais();
     } catch (error) {
       console.error('Falha ao enviar item:', item.id, error);
       falhas++;
-      // Não remove o item da lista local se falhar, para tentar novamente depois
     }
-    // Adiciona delay antes do próximo envio, exceto no último
     if (i < itensParaEnviar.length - 1) {
       await new Promise(resolve => setTimeout(resolve, ENVIO_DELAY_MS));
     }
   }
 
-  // Finaliza o processo
   enviando = false;
   btnLimpar.disabled = false;
-  updateBotaoRegistrar(); // Reabilita baseado nos campos
-  renderizaLista(); // Atualiza estado final do botão Enviar Todos
+  updateBotaoRegistrar();
+  renderizaLista(); // Atualiza estado final
 
-  // Mostra resultado final
   if (falhas === 0 && enviadosComSucesso > 0) {
     mostraStatus(`Todos os ${enviadosComSucesso} itens foram enviados com sucesso!`, 'success', 5000);
   } else if (falhas > 0 && enviadosComSucesso > 0) {
@@ -390,65 +413,57 @@ async function enviarTodos() {
   }
 }
 
-// Função auxiliar para enviar um único item
+// Função auxiliar para enviar um único item (adaptada)
 async function enviarItem(item) {
   const formData = new FormData();
   formData.append('timestamp', item.timestamp);
   formData.append('usuario', item.usuario);
   formData.append('codigo', item.codigo);
   formData.append('nomeProduto', item.nomeProduto);
-  formData.append('pesoLiquido', item.pesoLiquido);
+  formData.append('pesoLiquido', item.pesoLiquido); // Este é o peso líquido TOTAL
   formData.append('tara', item.tara);
-  formData.append('pesoTotal', item.pesoTotal);
+  formData.append('pesoComPote', item.pesoComPote); // Peso bruto pesado na balança
+  formData.append('pesoExtra', item.pesoExtra);     // Peso dos pacotes/estoque adicional
   formData.append('letraPote', item.letraPote);
-  formData.append('idLocal', item.id); // Envia ID local para referência
+  formData.append('idLocal', item.id);
 
   try {
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       body: formData,
-      // Não definimos 'mode: no-cors' pois esperamos JSON
     });
 
-     // Tenta ler como JSON, mesmo se não for ok, pode ter msg de erro
      let responseData = {};
      try {
        responseData = await response.json();
      } catch (jsonError) {
-        // Se não for JSON válido, tenta ler como texto
         const textResponse = await response.text();
         console.error("Resposta não era JSON:", textResponse);
         throw new Error(`Erro ${response.status}: Resposta inválida do servidor. ${textResponse.substring(0,100)}`);
      }
 
-
-    // Agora verifica se a resposta JSON indica sucesso (baseado no script que funcionou)
     if (!response.ok || responseData.result !== 'success') {
       console.error('Resposta do Script não foi sucesso:', responseData);
       throw new Error(responseData.message || `Erro ${response.status}`);
     }
 
     console.log('Item enviado com sucesso:', item.id, responseData);
-    // Não precisa retornar nada, o sucesso é indicado pela ausência de erro
 
   } catch (networkOrScriptError) {
     console.error("Erro de rede ou script ao enviar item:", networkOrScriptError);
-    // Propaga o erro para a função 'enviarTodos' tratar
     throw networkOrScriptError;
   }
 }
 
 
-/* ---------- UI Feedback (Status) ---------- */
+/* ---------- UI Feedback (Status) (sem alterações) ---------- */
 let statusTimeout;
-function mostraStatus(mensagem, tipo = 'info', duracaoMs = 4000) {
-  clearTimeout(statusTimeout); // Limpa timeout anterior, se houver
+function mostraStatus(mensagem, tipo = 'info', duracaoMs = 4000) { /* ...código mantido... */
+  clearTimeout(statusTimeout);
   status.textContent = mensagem;
-  // Define a classe baseada no tipo (info, success, error, sending)
   status.className = `status-base status-${tipo}`;
-  status.style.display = 'block'; // Garante que está visível
+  status.style.display = 'block';
 
-  // Esconde a mensagem após a duração, exceto se for 'sending'
   if (tipo !== 'sending' && duracaoMs > 0) {
     statusTimeout = setTimeout(() => {
       status.style.display = 'none';
