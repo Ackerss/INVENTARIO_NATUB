@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#4A90E2"> <title>Contador de Inventário Granel</title>
+  <meta name="theme-color" content="#4A90E2">
+  <title>Contador de Inventário Granel</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet"
@@ -13,37 +14,25 @@
   <link rel="manifest" href="manifest.json">
 
   <style>
-    /* Animações simples */
-    @keyframes flash{0%,100%{background:initial}50%{background:#a7f3d0}} /* Verde claro */
+    /* Estilos (mantidos da versão anterior) */
+    @keyframes flash{0%,100%{background:initial}50%{background:#a7f3d0}}
     .flash-success{animation:flash .5s}
-    @keyframes flash-error{0%,100%{background:initial}50%{background:#fecaca}} /* Vermelho claro */
+    @keyframes flash-error{0%,100%{background:initial}50%{background:#fecaca}}
     .flash-error{animation:flash-error .7s}
-
-    /* Estilos Tabela */
     #listaItensTable{width:100%;table-layout:fixed;font-size:.9rem}
     #listaItensTable th,#listaItensTable td{padding:6px 4px;border:1px solid #e5e7eb; word-wrap: break-word;}
-
-    /* Botão Instalar PWA (oculto por padrão) */
     #installPwaButton{display:none}
-
-    /* Botões de Tara */
     .tara-button{padding:.5rem .75rem; border: 1px solid #ccc; border-radius: 0.25rem; margin: 0.25rem; cursor: pointer; background-color: #f9f9f9;}
     .tara-button.selected{background-color: #60a5fa; color: white; border-color: #2563eb;}
     .tara-button:hover:not(.selected){background-color: #e5e5e5;}
-
-    /* Estilos para Status */
-    .status-base { padding: 0.5rem 1rem; margin-top: 1rem; border-radius: 0.25rem; color: white; text-align: center; font-weight: bold; display: none; /* Oculto por padrão */}
-    .status-info { background-color: #6b7280; /* Cinza */}
-    .status-success { background-color: #10b981; /* Verde */}
-    .status-error { background-color: #ef4444; /* Vermelho */}
-    .status-sending { background-color: #3b82f6; /* Azul */}
-
-    /* Modal */
+    .status-base { padding: 0.5rem 1rem; margin-top: 1rem; border-radius: 0.25rem; color: white; text-align: center; font-weight: bold; display: none; }
+    .status-info { background-color: #6b7280; }
+    .status-success { background-color: #10b981; }
+    .status-error { background-color: #ef4444; }
+    .status-sending { background-color: #3b82f6; }
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 999; display: none;}
     .modal-content { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 1000; width: 90%; max-width: 400px; display: none;}
     .modal-overlay.active, .modal-content.active { display: block; }
-
-
   </style>
 </head>
 <body class="bg-gray-100 p-4 font-sans">
@@ -74,7 +63,8 @@
         <label for="codigoProduto" class="block text-sm font-medium text-gray-700">Código do Produto</label>
         <input type="text" id="codigoProduto" placeholder="Código"
                class="mt-1 block w-full border border-gray-300 p-2 rounded" enterkeyhint="next">
-        <div id="nomeProdutoDisplay" class="mt-1 text-sm text-gray-600 h-5"></div> </div>
+        <div id="nomeProdutoDisplay" class="mt-1 text-sm text-gray-600 h-5"></div>
+      </div>
       <div>
         <label for="pesoTaraKg" class="block text-sm font-medium text-gray-700">
           Peso da Tara (kg) <span id="letraPoteSelecionado" class="text-blue-600 font-semibold">(Nenhuma)</span>
@@ -92,11 +82,20 @@
        <button class="tara-button mt-2" data-tara-kg="0" data-letra="Nenhuma">Nenhuma</button>
     </div>
 
-    <div class="mb-4">
-      <label for="pesoTotalKg" class="block text-sm font-medium text-gray-700">Peso Total (kg)</label>
-      <input type="number" step="0.001" inputmode="decimal" id="pesoTotalKg" placeholder="0.000"
-             class="mt-1 block w-full border border-gray-300 p-2 rounded" enterkeyhint="go">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div>
+            <label for="pesoComPoteKg" class="block text-sm font-medium text-gray-700">Peso COM POTE (kg)</label>
+            <input type="number" step="0.001" inputmode="decimal" id="pesoComPoteKg" placeholder="0.000"
+                   class="mt-1 block w-full border border-gray-300 p-2 rounded" enterkeyhint="next">
+        </div>
+         <div>
+            <label for="pesoExtraKg" class="block text-sm font-medium text-gray-700">Peso Extra Estoque (kg)</label>
+            <input type="number" step="0.001" inputmode="decimal" id="pesoExtraKg" placeholder="0.000"
+                   class="mt-1 block w-full border border-gray-300 p-2 rounded" enterkeyhint="go">
+            <p class="mt-1 text-xs text-gray-500">Opcional: Peso de pacotes fechados, etc.</p>
+        </div>
     </div>
+
 
     <button id="registrarItemBtn"
             class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded disabled:opacity-50">
@@ -152,7 +151,7 @@
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      installButton.style.display = 'inline-block'; // Mostra o botão
+      installButton.style.display = 'inline-block';
 
       installButton.addEventListener('click', (e) => {
         installButton.style.display = 'none';
