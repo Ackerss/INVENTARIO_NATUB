@@ -1,7 +1,7 @@
 /* ========= CONFIG ========= */
 const GOOGLE_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbwy_aKGV9xAd9sBJRGG66LohrR3s0l_DbDCnOveCEHaE_RGjNqgTHbkiBX8ngks3-nO/exec'; // Mantido o último URL funcional
-const APP_VERSION = '28-abr-2025 - Fix: Pote Vazio'; // Versão Atualizada
+const APP_VERSION = '28-abr-2025 - Fix: Fluxo Nenhuma'; // Versão Atualizada
 const ENVIO_DELAY_MS = 500;
 
 /* ========= VARS ========= */
@@ -13,8 +13,8 @@ let nomeUsuario = '', enviando = false, letraPoteSel = 'Nenhuma', itens = [], MA
 const $ = id => document.getElementById(id);
 const codigoInp=$('codigoProduto'), nomeDiv=$('nomeProdutoDisplay'),
       taraInp=$('pesoTaraKg'),
-      pesoComPoteInp=$('pesoComPoteKg'), // Renomeado
-      pesoExtraInp=$('pesoExtraKg'), // NOVO CAMPO
+      pesoComPoteInp=$('pesoComPoteKg'),
+      pesoExtraInp=$('pesoExtraKg'),
       btnReg=$('registrarItemBtn'), tbody=$('listaItensBody'),
       letras=$('botoesTaraContainer'), status=$('statusEnvio'),
       nomeDisp=$('nomeUsuarioDisplay'), modal=$('modalNomeUsuario'),
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   selecionaBotaoNenhuma();
 });
 
-/* ---------- Setup Eventos (sem alterações) ---------- */
+/* ---------- Setup Eventos ---------- */
 function setupEventListeners() {
   // Modal Nome
   salvaNmBtn.addEventListener('click', salvaNome);
@@ -53,8 +53,9 @@ function setupEventListeners() {
   // Input Código Produto (Blur) -> Busca Tara Automática
   codigoInp.addEventListener('blur', buscaTaraAutomatica);
 
-  // Botões Tara Rápida
+  // Botões Tara Rápida (Dinâmicos)
   letras.addEventListener('click', handleTaraRapidaClick);
+  // Evento para o botão "Nenhuma" fixo
   const btnNenhumaFixo = document.querySelector('.tara-button[data-letra="Nenhuma"]');
   if (btnNenhumaFixo) {
       btnNenhumaFixo.addEventListener('click', handleTaraRapidaClick);
@@ -101,10 +102,35 @@ function geraBotoesTara() { /* ...código mantido... */
     letras.innerHTML = ''; const potesUnicos = {}; Object.values(MAPA).forEach(p => { if (p.letra && p.tara !== undefined && p.letra !== 'Nenhuma' && !potesUnicos[p.letra]) { potesUnicos[p.letra] = p.tara; } }); Object.keys(potesUnicos).sort().forEach(letra => { const tara = potesUnicos[letra]; const btn = document.createElement('button'); btn.className = 'tara-button'; btn.dataset.taraKg = tara; btn.dataset.letra = letra; btn.textContent = letra; letras.appendChild(btn); });
 }
 
-/* ---------- Funções de Tara (sem alterações) ---------- */
-function handleTaraRapidaClick(event) { /* ...código mantido... */
-    const btn = event.target.closest('.tara-button'); if (!btn) return; desmarcaBotoesTara(); btn.classList.add('selected'); taraInp.value = parseFloat(btn.dataset.taraKg).toFixed(3); letraPoteSel = btn.dataset.letra; spanLetra.textContent = `(${letraPoteSel})`; pesoComPoteInp.focus(); pesoComPoteInp.select();
+/* ---------- Funções de Tara (MODIFICADO handleTaraRapidaClick) ---------- */
+function handleTaraRapidaClick(event) {
+    const btn = event.target.closest('.tara-button');
+    if (!btn) return;
+
+    // Ações comuns para qualquer botão de tara
+    desmarcaBotoesTara();
+    btn.classList.add('selected');
+    taraInp.value = parseFloat(btn.dataset.taraKg).toFixed(3);
+    letraPoteSel = btn.dataset.letra;
+    spanLetra.textContent = `(${letraPoteSel})`;
+
+    // --- LÓGICA ESPECÍFICA PARA "NENHUMA" ---
+    if (letraPoteSel === 'Nenhuma') {
+        pesoComPoteInp.value = '0'; // Define Peso COM POTE como 0
+        pesoExtraInp.focus();       // Move foco para Peso EXTRA
+        pesoExtraInp.select();
+        console.log("Botão Nenhuma clicado: Peso com pote zerado, foco no Peso Extra.");
+        // Atualiza estado do botão registrar, pois agora pesoComPote tem valor '0'
+        updateBotaoRegistrar();
+    } else {
+        // Se for outro botão (A, B, C...), move foco para Peso COM POTE
+        pesoComPoteInp.focus();
+        pesoComPoteInp.select();
+        console.log(`Botão ${letraPoteSel} clicado: Foco no Peso com Pote.`);
+    }
+    // --- FIM DA LÓGICA ---
 }
+
 function handleTaraManualInput() { /* ...código mantido... */
     desmarcaBotoesTara(); letraPoteSel = 'Manual'; spanLetra.textContent = '(Manual)'; if (!taraInp.value.trim()) { selecionaBotaoNenhuma(); }
 }
@@ -122,6 +148,7 @@ function buscaTaraAutomatica() { /* ...código mantido... */
 
 /* ---------- Estado Botão Registrar (sem alterações) ---------- */
 function updateBotaoRegistrar() { /* ...código mantido... */
+  // Habilitado se tiver nome, código E peso com pote (mesmo que seja '0' agora)
   btnReg.disabled = !(nomeUsuario && codigoInp.value.trim() && pesoComPoteInp.value.trim());
 }
 
@@ -130,8 +157,8 @@ function carregaLocais() { /* ...código mantido... */ itens = JSON.parse(localS
 function salvaLocais() { /* ...código mantido... */ localStorage.setItem(ITENS_KEY, JSON.stringify(itens)); renderizaLista(); }
 function limparItensLocais() { /* ...código mantido... */ if (enviando) { alert("Aguarde o término do envio atual antes de limpar."); return; } if (itens.length === 0) { mostraStatus('Nenhum item local para limpar.', 'info', 3000); return; } if (confirm(`Tem certeza que deseja apagar ${itens.length} registro(s) locais pendentes? Esta ação não pode ser desfeita.`)) { itens = []; salvaLocais(); mostraStatus('Registros locais limpos.', 'success', 3000); } }
 
-/* ---------- Registrar Item Localmente (MODIFICADO) ---------- */
-function registrarItemLocalmente() {
+/* ---------- Registrar Item Localmente (sem alterações lógicas aqui, a validação está ok) ---------- */
+function registrarItemLocalmente() { /* ...código mantido da versão anterior, pois já trata pote vazio... */
   updateBotaoRegistrar();
   if (btnReg.disabled) {
     alert('Preencha o código e o peso com pote para registrar.');
@@ -139,77 +166,51 @@ function registrarItemLocalmente() {
   };
 
   const codigo = codigoInp.value.trim();
-  // Lê os valores dos inputs
   let taraInput = parseFloat(taraInp.value.replace(',', '.')) || 0;
-  const pesoComPote = parseFloat(pesoComPoteInp.value.replace(',', '.')) || 0; // Usa 0 se vazio ou inválido
-  const pesoExtra = parseFloat(pesoExtraInp.value.replace(',', '.')) || 0;   // Usa 0 se vazio ou inválido
+  const pesoComPote = parseFloat(pesoComPoteInp.value.replace(',', '.')) || 0; // Default 0
+  const pesoExtra = parseFloat(pesoExtraInp.value.replace(',', '.')) || 0;   // Default 0
 
-  // --- LÓGICA PARA POTE VAZIO ---
   let taraCalculo = taraInput;
-  let letraPoteCalculo = letraPoteSel; // Usa a letra selecionada/manual por padrão
+  let letraPoteCalculo = letraPoteSel;
 
+  // Lógica de segurança: Se peso com pote for 0, força tara 0 e letra Nenhuma
   if (pesoComPote === 0) {
-      console.log("Peso com pote é 0, forçando tara para 0 e letra para Nenhuma.");
-      taraCalculo = 0; // Força a tara a ser 0 se não pesou o pote
-      letraPoteCalculo = 'Nenhuma'; // Define a letra como Nenhuma para o registro
-      // Opcional: Atualizar visualmente a seleção do botão e input de tara
-      selecionaBotaoNenhuma(); // Isso também atualiza taraInp.value para 0.000
-  }
-  // --- FIM DA LÓGICA ---
-
-  // Validações após ajustes
-  if (isNaN(pesoComPote)) { // Ainda valida se o input original era válido antes de ser 0
-    mostraStatus('Erro: Peso COM POTE inválido.', 'error');
-    pesoComPoteInp.focus();
-    return;
-  }
-   if (isNaN(taraCalculo)) { // Valida tara usada no cálculo
-    mostraStatus('Erro: Peso da TARA inválido.', 'error');
-    taraInp.focus(); // Foca na tara original para correção, mesmo que usemos 0
-    return;
-  }
-   if (isNaN(pesoExtra)) {
-    mostraStatus('Aviso: Peso Extra inválido, será considerado 0.', 'info', 3000);
+      taraCalculo = 0;
+      letraPoteCalculo = 'Nenhuma';
+      // Opcional: garantir visualmente que Nenhuma esteja selecionado
+      // selecionaBotaoNenhuma(); // Cuidado para não re-chamar eventos infinitos se já estiver aqui via clique
   }
 
+  if (isNaN(pesoComPote)) { mostraStatus('Erro: Peso COM POTE inválido.', 'error'); pesoComPoteInp.focus(); return; }
+  if (isNaN(taraCalculo)) { mostraStatus('Erro: Peso da TARA inválido.', 'error'); taraInp.focus(); return; }
+  if (isNaN(pesoExtra)) { mostraStatus('Aviso: Peso Extra inválido, será considerado 0.', 'info', 3000); }
 
-  const pesoLiquidoPote = pesoComPote - taraCalculo; // Usa a tara ajustada
+
+  const pesoLiquidoPote = pesoComPote - taraCalculo;
   const pesoLiquidoTotal = +(pesoLiquidoPote + pesoExtra).toFixed(3);
 
-   if (pesoLiquidoTotal < 0) {
-      mostraStatus('Erro: Peso Líquido TOTAL calculado é negativo. Verifique os valores.', 'error');
+   if (pesoLiquidoTotal <= 0 && pesoExtra <= 0) { // Ajuste: permite registro se SÓ o extra for positivo
+      mostraStatus('Erro: Peso Líquido TOTAL zerado ou negativo.', 'error');
       return;
    }
 
   const produtoInfo = MAPA[codigo] || {};
 
   const novoItem = {
-    id: Date.now(),
-    timestamp: new Date().toISOString(),
-    usuario: nomeUsuario,
-    codigo: codigo,
-    nomeProduto: produtoInfo.Nome || 'NÃO ENCONTRADO',
-    pesoLiquido: pesoLiquidoTotal, // Salva o total líquido calculado
-    tara: taraCalculo,             // Salva a tara efetivamente usada (0 se pote vazio)
-    pesoComPote: pesoComPote,      // Salva o que foi digitado (0 se pote vazio)
-    pesoExtra: pesoExtra,          // Salva o peso extra
-    letraPote: letraPoteCalculo    // Salva a letra efetiva ('Nenhuma' se pote vazio)
+    id: Date.now(), timestamp: new Date().toISOString(), usuario: nomeUsuario,
+    codigo: codigo, nomeProduto: produtoInfo.Nome || 'NÃO ENCONTRADO',
+    pesoLiquido: pesoLiquidoTotal, tara: taraCalculo, pesoComPote: pesoComPote,
+    pesoExtra: pesoExtra, letraPote: letraPoteCalculo
   };
 
   itens.push(novoItem);
-  salvaLocais(); // Salva e atualiza a lista
+  salvaLocais();
 
-  // Limpa campos para próximo item
-  codigoInp.value = '';
-  taraInp.value = ''; // Limpa tara também
-  pesoComPoteInp.value = '';
-  pesoExtraInp.value = '';
-  nomeDiv.textContent = '';
-  selecionaBotaoNenhuma(); // Seleciona 'Nenhuma' por padrão para a próxima
+  // Limpa campos
+  codigoInp.value = ''; taraInp.value = ''; pesoComPoteInp.value = ''; pesoExtraInp.value = ''; nomeDiv.textContent = '';
+  selecionaBotaoNenhuma(); // Seleciona 'Nenhuma' por padrão
 
-  codigoInp.focus();
-  mostraStatus('Item registrado localmente!', 'success', 2000);
-  updateBotaoRegistrar();
+  codigoInp.focus(); mostraStatus('Item registrado localmente!', 'success', 2000); updateBotaoRegistrar();
 }
 
 /* ---------- Renderizar Lista de Pendentes (sem alterações) ---------- */
@@ -222,8 +223,7 @@ function excluirItem(id) { /* ...código mantido... */
     if (enviando) { alert("Aguarde o término do envio atual para excluir itens."); return; } const itemIndex = itens.findIndex(i => i.id === id); if (itemIndex > -1) { if (confirm(`Tem certeza que deseja excluir o item ${itens[itemIndex].codigo}?`)) { itens.splice(itemIndex, 1); salvaLocais(); mostraStatus('Item excluído localmente.', 'info', 2000); } }
 }
 
-
-/* ---------- Envio para Google Apps Script (sem alterações na lógica principal) ---------- */
+/* ---------- Envio para Google Apps Script (sem alterações) ---------- */
 async function enviarTodos() { /* ...código mantido... */
   if (enviando || itens.length === 0) return; enviando = true; enviarTodosBtn.disabled = true; btnLimpar.disabled = true; btnReg.disabled = true; mostraStatus(`Enviando ${itens.length} item(ns)...`, 'sending'); const itensParaEnviar = [...itens]; let enviadosComSucesso = 0; let falhas = 0; const idsEnviadosComSucesso = []; for (let i = 0; i < itensParaEnviar.length; i++) { const item = itensParaEnviar[i]; mostraStatus(`Enviando ${i + 1}/${itensParaEnviar.length}: Código ${item.codigo}...`, 'sending'); try { const resultadoEnvio = await enviarItem(item); if (resultadoEnvio && resultadoEnvio.result === 'success' && resultadoEnvio.idLocal == item.id) { enviadosComSucesso++; idsEnviadosComSucesso.push(item.id); } else { throw new Error(resultadoEnvio.message || 'Resposta inesperada do servidor.'); } } catch (error) { console.error('Falha ao enviar item:', item.id, error); falhas++; mostraStatus(`Falha item ${item.codigo}: ${error.message}`, 'error', 5000); await new Promise(resolve => setTimeout(resolve, ENVIO_DELAY_MS * 2)); } if (i < itensParaEnviar.length - 1) { await new Promise(resolve => setTimeout(resolve, ENVIO_DELAY_MS)); } } if(idsEnviadosComSucesso.length > 0) { itens = itens.filter(item => !idsEnviadosComSucesso.includes(item.id)); salvaLocais(); } enviando = false; btnLimpar.disabled = false; updateBotaoRegistrar(); renderizaLista(); if (falhas === 0 && enviadosComSucesso > 0) { mostraStatus(`Todos os ${enviadosComSucesso} itens foram enviados com sucesso!`, 'success', 5000); } else if (falhas > 0 && enviadosComSucesso > 0) { mostraStatus(`${enviadosComSucesso} itens enviados, ${falhas} falharam. Tente enviar os pendentes novamente.`, 'error', 8000); } else if (falhas > 0 && enviadosComSucesso === 0) { mostraStatus(`Falha ao enviar todos os ${falhas} itens. Verifique a conexão/logs e tente novamente.`, 'error', 8000); } else if (falhas === 0 && enviadosComSucesso === 0 && itensParaEnviar.length > 0) { mostraStatus('Nenhum item enviado (sem falhas reportadas?). Verifique a lista.', 'info', 5000); } else { mostraStatus('Não havia itens para enviar.', 'info', 3000); }
 }
