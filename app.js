@@ -1,145 +1,140 @@
-// v15.1  –  teclas ‘Enter/Go/Next/Done’     28-abr-2025
+// v15 – full features + FormData   (28-abr-2025)
 document.addEventListener('DOMContentLoaded', main);
 
 function main() {
+  /* ⇣  cole aqui a URL /exec da Implantação ⇣ */
   const GOOGLE_SCRIPT_URL =
     'https://script.google.com/macros/s/AKfycby9BdmtpHuyxQzyfMVNPIXisx_ADVo-Nod_HmTv-5ayEKzMjTDglmxTUqkI_ZeB8exN/exec';
 
-  const $ = id => document.getElementById(id);
-  const codigoInp  = $('codigoProduto');
-  const taraInp    = $('pesoTaraKg');
-  const pesoTotInp = $('pesoTotalKg');
-  const btnSend    = $('registrarItemBtn');
-  const statusDiv  = $('statusEnvio');
-  const nomeProd   = $('nomeProdutoDisplay');
-  const taraBox    = $('botoesTaraContainer');
+  /* ---------- refs DOM ---------- */
+  const $  = id => document.getElementById(id);
+  const codigoInp   = $('codigoProduto');
+  const taraInp     = $('pesoTaraKg');
+  const pesoTotInp  = $('pesoTotalKg');
+  const btnEnviar   = $('registrarItemBtn');
+  const statusDiv   = $('statusEnvio');
+  const nomeProdDiv = $('nomeProdutoDisplay');
+  const taraBtnsBox = $('botoesTaraContainer');
 
-  const overlay = $('overlayNomeUsuario');
-  const modal   = $('modalNomeUsuario');
-  const nomeInp = $('inputNomeUsuario');
-  const salvaNm = $('salvarNomeUsuarioBtn');
-  const nomeLbl = $('nomeUsuarioDisplay');
+  /* modal nome usuário */
+  const overlay   = $('overlayNomeUsuario');
+  const modal     = $('modalNomeUsuario');
+  const nomeInp   = $('inputNomeUsuario');
+  const salvarBtn = $('salvarNomeUsuarioBtn');
+  const nomeSpan  = $('nomeUsuarioDisplay');
 
-  let MAPA = {};
+  let MAPA = {};                // codigo → objeto com Nome, tara, letra
+  let letraSelecionada = '';
   let nomeUsuario = localStorage.getItem('inventarioGranelUsuario') || '';
-  let letraSel = '';
 
-  /* ---------- potes.json ---------- */
-  fetch('potes.json').then(r => r.json()).then(arr => {
-    arr.forEach(p => MAPA[p.codigo] = p);
-  });
+  /* ----- carrega potes.json ----- */
+  fetch('potes.json')
+    .then(r => r.json())
+    .then(arr => { arr.forEach(p => MAPA[p.codigo] = p); });
 
-  /* ---------- nome usuário ---------- */
-  if (!nomeUsuario) abrirModal();
+  /* ----- pede nome se necessário ----- */
+  if (!nomeUsuario) abrirModalNome();
   else mostrarNome();
-  nomeLbl.addEventListener('click', abrirModal);
-  salvaNm.addEventListener('click', salvaNome);
-  nomeInp.addEventListener('keydown', e => {
-    if (e.key === 'Enter') salvaNome();
-  });
-  function abrirModal() {
+
+  function abrirModalNome() {
     overlay.style.display = modal.style.display = 'block';
     nomeInp.focus();
   }
-  function salvaNome() {
+  function fecharModalNome() {
+    overlay.style.display = modal.style.display = 'none';
+  }
+  function salvarNome() {
     const n = nomeInp.value.trim();
-    if (!n) return alert('Digite seu nome.');
+    if (!n) { alert('Digite seu nome.'); return; }
     nomeUsuario = n;
     localStorage.setItem('inventarioGranelUsuario', n);
     mostrarNome();
-    overlay.style.display = modal.style.display = 'none';
-    updateBtn();
+    fecharModalNome();
+    atualizarBotao();
   }
-  function mostrarNome() { nomeLbl.textContent = `Olá, ${nomeUsuario}!`; }
+  function mostrarNome() {
+    nomeSpan.textContent = `Olá, ${nomeUsuario}!`;
+  }
+  salvarBtn.addEventListener('click', salvarNome);
+  nomeInp.addEventListener('keydown', e => { if (e.key === 'Enter') salvarNome(); });
+  nomeSpan.addEventListener('click', abrirModalNome);
 
-  /* ---------- tara rápida ---------- */
-  taraBox.addEventListener('click', ev => {
-    const b = ev.target.closest('.tara-button');
-    if (!b) return;
-    [...taraBox.children].forEach(x => x.classList.remove('selected'));
-    b.classList.add('selected');
-    taraInp.value = Number(b.dataset.taraKg).toFixed(3).replace('0.000','');
-    letraSel = b.dataset.letra || '';
+  /* ----- tara rápida ----- */
+  taraBtnsBox.addEventListener('click', ev => {
+    const btn = ev.target.closest('.tara-button');
+    if (!btn) return;
+
+    [...taraBtnsBox.children].forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+
+    letraSelecionada = btn.dataset.letra || '';
+    const tara = Number(btn.dataset.taraKg);
+    taraInp.value = tara ? tara.toFixed(3) : '';
     pesoTotInp.focus();
   });
 
-  /* ---------- mover foco com Enter/Go ---------- */
-  const goKeys = ['Enter','Go','Next','Done','Send'];
-  codigoInp.addEventListener('keydown', e => {
-    if (goKeys.includes(e.key)) {
-      e.preventDefault();
-      taraInp.focus();
-      taraInp.select();
-    }
-  });
-  taraInp.addEventListener('keydown', e => {
-    if (goKeys.includes(e.key)) {
-      e.preventDefault();
-      pesoTotInp.focus();
-      pesoTotInp.select();
-    }
-  });
-  pesoTotInp.addEventListener('keydown', e => {
-    if (goKeys.includes(e.key)) {
-      e.preventDefault();
-      btnSend.click();
-    }
-  });
-
-  /* ---------- habilita/desabilita botão ---------- */
-  [codigoInp, taraInp, pesoTotInp].forEach(el =>
-    el.addEventListener('input', updateBtn));
-  function updateBtn() {
-    btnSend.disabled = !(nomeUsuario && codigoInp.value && pesoTotInp.value);
-  }
-
-  /* ---------- indicar nome do produto ---------- */
+  /* ----- exibe nome do produto quando sai do campo código ----- */
   codigoInp.addEventListener('blur', () => {
     const p = MAPA[codigoInp.value.trim()];
-    nomeProd.textContent = p ? p.Nome : '';
+    nomeProdDiv.textContent = p ? p.Nome : '';
+    atualizarBotao();
   });
 
-  /* ---------- enviar ---------- */
-  btnSend.addEventListener('click', async () => {
-    updateBtn();
-    if (btnSend.disabled) return;
+  /* ----- habilita botão se dados mínimos ok ----- */
+  function atualizarBotao() {
+    btnEnviar.disabled = !(
+      nomeUsuario &&
+      codigoInp.value.trim() &&
+      pesoTotInp.value.trim()
+    );
+  }
+  [codigoInp, pesoTotInp, taraInp].forEach(el =>
+      el.addEventListener('input', atualizarBotao));
+
+  /* ----- envio ----- */
+  btnEnviar.addEventListener('click', async () => {
+    atualizarBotao();
+    if (btnEnviar.disabled) return;
 
     const codigo    = codigoInp.value.trim();
-    const tara      = parseFloat(taraInp.value.replace(',','.')) || 0;
-    const pesoTot   = parseFloat(pesoTotInp.value.replace(',','.'));
-    const pesoLiq   = +(pesoTot - tara).toFixed(3);
+    const pesoTotal = Number(pesoTotInp.value.replace(',', '.'));
+    const tara      = Number(taraInp.value.replace(',', '.')) || 0;
+    const pesoLiq   = +(pesoTotal - tara).toFixed(3);
 
-    const p = MAPA[codigo] || {};
+    const pInfo = MAPA[codigo] || {};
     const fd = new FormData();
     fd.append('usuario',     nomeUsuario);
     fd.append('codigo',      codigo);
-    fd.append('nomeProduto', p.Nome || '');
+    fd.append('nomeProduto', pInfo.Nome || '');
     fd.append('pesoLiquido', pesoLiq);
     fd.append('tara',        tara);
-    fd.append('pesoTotal',   pesoTot);
-    fd.append('letraPote',   letraSel || p.letra || '');
+    fd.append('pesoTotal',   pesoTotal);
+    fd.append('letraPote',   letraSelecionada || pInfo.letra || '');
 
     statusDiv.textContent = 'Enviando…';
-    statusDiv.className = 'sending';
+    statusDiv.className   = 'sending';
 
     try {
-      const r = await fetch(GOOGLE_SCRIPT_URL, { method:'POST', body:fd });
-      const j = await r.json();
-      if (j.result !== 'success') throw new Error(j.message);
+      const r   = await fetch(GOOGLE_SCRIPT_URL, { method:'POST', body:fd });
+      const res = await r.json();
+      if (res.result !== 'success')
+        throw new Error(res.message || 'Erro desconhecido');
 
       statusDiv.textContent = 'Enviado ✔';
-      statusDiv.className = 'success';
-      [codigoInp,taraInp,pesoTotInp].forEach(i=>i.value='');
-      nomeProd.textContent = ''; letraSel='';
-      [...taraBox.children].forEach(x=>x.classList.remove('selected'));
-      updateBtn();
-      codigoInp.focus();
+      statusDiv.className   = 'success';
+
+      /* limpa formulário */
+      [codigoInp, taraInp, pesoTotInp].forEach(i => i.value='');
+      nomeProdDiv.textContent = '';
+      [...taraBtnsBox.children].forEach(b => b.classList.remove('selected'));
+      letraSelecionada = '';
+      atualizarBotao();
 
     } catch (err) {
       statusDiv.textContent = 'Falha: '+err.message;
       statusDiv.className   = 'error';
     } finally {
-      setTimeout(()=>statusDiv.textContent='',6000);
+      setTimeout(() => { statusDiv.textContent=''; }, 6000);
     }
   });
 }
